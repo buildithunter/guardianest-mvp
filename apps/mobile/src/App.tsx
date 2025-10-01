@@ -1,1 +1,69 @@
-import React from 'react';\nimport { StatusBar } from 'expo-status-bar';\nimport { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';\nimport { AuthProvider, useAuth } from './contexts/AuthContext';\nimport AuthScreen from './screens/AuthScreen';\n\n// Simple dashboard component to show after successful login\nconst Dashboard: React.FC = () => {\n  const { user, profile, signOutUser } = useAuth();\n\n  return (\n    <View style={styles.dashboard}>\n      <Text style={styles.welcomeTitle}>Welcome to Guardianest!</Text>\n      {profile && (\n        <>\n          <Text style={styles.userInfo}>Role: {profile.role}</Text>\n          <Text style={styles.userInfo}>Tier: {profile.tier}</Text>\n          {profile.role === 'parent' && (\n            <Text style={styles.userInfo}>Email: {user?.email}</Text>\n          )}\n        </>\n      )}\n      \n      <View style={styles.features}>\n        <Text style={styles.featureTitle}>Available Features:</Text>\n        <Text style={styles.featureItem}>• AI Homework Help</Text>\n        <Text style={styles.featureItem}>• Bedtime Stories</Text>\n        <Text style={styles.featureItem}>• Photo Text Recognition (OCR)</Text>\n        <Text style={styles.featureItem}>• Parental Controls</Text>\n        <Text style={styles.featureItem}>• Usage Tracking</Text>\n      </View>\n      \n      <TouchableOpacity style={styles.signOutButton} onPress={signOutUser}>\n        <Text style={styles.signOutText}>Sign Out</Text>\n      </TouchableOpacity>\n    </View>\n  );\n};\n\n// Main app content (authenticated state)\nconst AppContent: React.FC = () => {\n  const { session, loading } = useAuth();\n\n  if (loading) {\n    return (\n      <View style={styles.loadingContainer}>\n        <ActivityIndicator size=\"large\" color=\"#3498db\" />\n        <Text style={styles.loadingText}>Loading...</Text>\n      </View>\n    );\n  }\n\n  return session ? <Dashboard /> : <AuthScreen />;\n};\n\n// Root App component\nexport default function App() {\n  return (\n    <AuthProvider>\n      <View style={styles.container}>\n        <StatusBar style=\"auto\" />\n        <AppContent />\n      </View>\n    </AuthProvider>\n  );\n}\n\nconst styles = StyleSheet.create({\n  container: {\n    flex: 1,\n    backgroundColor: '#f8f9fa',\n  },\n  loadingContainer: {\n    flex: 1,\n    justifyContent: 'center',\n    alignItems: 'center',\n    backgroundColor: '#f8f9fa',\n  },\n  loadingText: {\n    marginTop: 10,\n    fontSize: 16,\n    color: '#7f8c8d',\n  },\n  dashboard: {\n    flex: 1,\n    padding: 20,\n    paddingTop: 60,\n  },\n  welcomeTitle: {\n    fontSize: 28,\n    fontWeight: 'bold',\n    textAlign: 'center',\n    marginBottom: 30,\n    color: '#2c3e50',\n  },\n  userInfo: {\n    fontSize: 16,\n    marginBottom: 10,\n    color: '#34495e',\n    textAlign: 'center',\n  },\n  features: {\n    marginTop: 40,\n    backgroundColor: 'white',\n    padding: 20,\n    borderRadius: 12,\n    shadowColor: '#000',\n    shadowOffset: {\n      width: 0,\n      height: 2,\n    },\n    shadowOpacity: 0.1,\n    shadowRadius: 3.84,\n    elevation: 5,\n  },\n  featureTitle: {\n    fontSize: 18,\n    fontWeight: '600',\n    marginBottom: 15,\n    color: '#2c3e50',\n  },\n  featureItem: {\n    fontSize: 16,\n    marginBottom: 8,\n    color: '#34495e',\n  },\n  signOutButton: {\n    backgroundColor: '#e74c3c',\n    padding: 15,\n    borderRadius: 8,\n    marginTop: 40,\n    alignItems: 'center',\n  },\n  signOutText: {\n    color: 'white',\n    fontSize: 16,\n    fontWeight: '600',\n  },\n});
+import React from 'react';
+import { StatusBar } from 'expo-status-bar';
+import { View, Text, ActivityIndicator, StyleSheet } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
+import AppNavigator from './navigation/AppNavigator';
+
+// Loading component
+const LoadingScreen: React.FC = () => (
+  <View style={styles.loadingContainer}>
+    <LinearGradient
+      colors={['#667eea', '#764ba2']}
+      style={styles.loadingGradient}
+    >
+      <Text style={styles.loadingTitle}>Guardianest</Text>
+      <ActivityIndicator size="large" color="#ffffff" style={styles.loadingSpinner} />
+      <Text style={styles.loadingText}>Loading your learning adventure...</Text>
+    </LinearGradient>
+  </View>
+);
+
+// Main app content
+const AppContent: React.FC = () => {
+  const { loading } = useAuth();
+
+  if (loading) {
+    return <LoadingScreen />;
+  }
+
+  return <AppNavigator />;
+};
+
+// Root App component
+export default function App() {
+  return (
+    <AuthProvider>
+      <StatusBar style="light" />
+      <AppContent />
+    </AuthProvider>
+  );
+}
+
+const styles = StyleSheet.create({
+  loadingContainer: {
+    flex: 1,
+  },
+  loadingGradient: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 30,
+  },
+  loadingTitle: {
+    fontSize: 36,
+    fontWeight: 'bold',
+    color: '#ffffff',
+    marginBottom: 30,
+    textAlign: 'center',
+  },
+  loadingSpinner: {
+    marginVertical: 20,
+  },
+  loadingText: {
+    fontSize: 16,
+    color: '#ffffff',
+    textAlign: 'center',
+    opacity: 0.9,
+  },
+});
