@@ -1,0 +1,19 @@
+# Copy this to .dev.vars and fill in your actual API keys
+# Required: OpenAI API key for AI completions
+OPENAI_API_KEY=sk-your-openai-api-key-here
+
+# Optional: Google Cloud API key for OCR fallback
+GOOGLE_CLOUD_API_KEY=your-google-cloud-api-key-here
+
+# Required: Supabase configuration
+SUPABASE_URL=https://your-project-id.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=your-supabase-service-role-key-here
+
+# Optional: Environment identifier
+ENVIRONMENT=development
+
+# Optional: Rate limiting
+# RATE_LIMIT_PER_MINUTE=60
+
+# Optional: Analytics/monitoring
+# SENTRY_DSN=your-sentry-dsn

@@ -1,0 +1,19 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+# Run lint-staged for code formatting and linting
+npx lint-staged
+
+# Run type-check on staged TypeScript files
+if git diff --cached --name-only --diff-filter=ACM | grep -E '\.(ts|tsx)$' > /dev/null; then
+  echo "🔍 Running TypeScript type check..."
+  npm run type-check
+fi
+
+# Run tests on staged files
+if git diff --cached --name-only --diff-filter=ACM | grep -E '\.(ts|tsx|js|jsx)$' > /dev/null; then
+  echo "🧪 Running tests..."
+  npm run test -- --passWithNoTests
+fi
+
+echo "✅ Pre-commit checks passed!"
