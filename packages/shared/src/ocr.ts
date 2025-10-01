@@ -1,1 +1,75 @@
-/**\n * OCR Service - Handles text extraction from images\n * Uses client-side ML Kit when available, falls back to server-side Google Cloud Vision\n */\n\nimport type { OCRRequest, OCRResponse, ApiResponse } from './index';\n\n// Server-side OCR using Google Cloud Vision API\nexport const extractTextFromServer = async (\n  imageBase64: string,\n  serverUrl: string = 'http://localhost:8787'\n): Promise<OCRResponse> => {\n  try {\n    const request: OCRRequest = {\n      image: imageBase64,\n    };\n\n    const response = await fetch(`${serverUrl}/ocr/extract`, {\n      method: 'POST',\n      headers: {\n        'Content-Type': 'application/json',\n      },\n      body: JSON.stringify(request),\n    });\n\n    if (!response.ok) {\n      throw new Error(`HTTP ${response.status}: ${response.statusText}`);\n    }\n\n    const result: ApiResponse<OCRResponse> = await response.json();\n    \n    if (!result.success) {\n      throw new Error(result.error || 'OCR extraction failed');\n    }\n\n    return result.data!;\n  } catch (error) {\n    console.error('Server OCR failed:', error);\n    throw error;\n  }\n};\n\n// Utility function to convert URI to base64\nexport const uriToBase64 = async (uri: string): Promise<string> => {\n  try {\n    const response = await fetch(uri);\n    const blob = await response.blob();\n    return new Promise((resolve, reject) => {\n      const reader = new FileReader();\n      reader.onloadend = () => {\n        const base64 = reader.result as string;\n        resolve(base64);\n      };\n      reader.onerror = reject;\n      reader.readAsDataURL(blob);\n    });\n  } catch (error) {\n    console.error('Failed to convert URI to base64:', error);\n    throw error;\n  }\n};\n\n// Image validation\nexport const validateImageSize = (width: number, height: number): boolean => {\n  const maxDimension = 4096;\n  return width <= maxDimension && height <= maxDimension;\n};\n\nexport const validateImageFileSize = (base64: string): boolean => {\n  // Remove data URL prefix if present\n  const base64Data = base64.replace(/^data:image\\/[a-z]+;base64,/, '');\n  const sizeInBytes = (base64Data.length * 3) / 4;\n  const maxSizeInBytes = 10 * 1024 * 1024; // 10MB\n  return sizeInBytes <= maxSizeInBytes;\n};
+/**
+ * OCR Service - Handles text extraction from images
+ * Uses client-side ML Kit when available, falls back to server-side Google Cloud Vision
+ */
+
+import type { OCRRequest, OCRResponse, ApiResponse } from './index';
+
+// Server-side OCR using Google Cloud Vision API
+export const extractTextFromServer = async (
+  imageBase64: string,
+  serverUrl: string = 'http://localhost:8787'
+): Promise<OCRResponse> => {
+  try {
+    const request: OCRRequest = {
+      image: imageBase64,
+    };
+
+    const response = await fetch(`${serverUrl}/ocr/extract`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(request),
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+
+    const result: ApiResponse<OCRResponse> = await response.json();
+    
+    if (!result.success) {
+      throw new Error(result.error || 'OCR extraction failed');
+    }
+
+    return result.data!;
+  } catch (error) {
+    console.error('Server OCR failed:', error);
+    throw error;
+  }
+};
+
+// Utility function to convert URI to base64
+export const uriToBase64 = async (uri: string): Promise<string> => {
+  try {
+    const response = await fetch(uri);
+    const blob = await response.blob();
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const base64 = reader.result as string;
+        resolve(base64);
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    });
+  } catch (error) {
+    console.error('Failed to convert URI to base64:', error);
+    throw error;
+  }
+};
+
+// Image validation
+export const validateImageSize = (width: number, height: number): boolean => {
+  const maxDimension = 4096;
+  return width <= maxDimension && height <= maxDimension;
+};
+
+export const validateImageFileSize = (base64: string): boolean => {
+  // Remove data URL prefix if present
+  const base64Data = base64.replace(/^data:image\/[a-z]+;base64,/, '');
+  const sizeInBytes = (base64Data.length * 3) / 4;
+  const maxSizeInBytes = 10 * 1024 * 1024; // 10MB
+  return sizeInBytes <= maxSizeInBytes;
+};
