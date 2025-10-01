@@ -94,4 +94,5 @@ export interface ApiResponse<T = any> {
 // Export OCR utilities
 export * from './ocr';
 export * from './supabase';
+export * from './supabase-server';
 export * from './database.types';
