@@ -1,1 +1,380 @@
-import React, { useState } from 'react';\nimport {\n  View,\n  Text,\n  TextInput,\n  TouchableOpacity,\n  StyleSheet,\n  Alert,\n  ScrollView,\n  KeyboardAvoidingView,\n  Platform,\n  ActivityIndicator,\n} from 'react-native';\nimport { useAuth } from '../contexts/AuthContext';\n\ntype AuthMode = 'parent-login' | 'parent-signup' | 'child-login' | 'child-setup';\n\nexport const AuthScreen: React.FC = () => {\n  const { signInWithEmail, signUpAsParent, signInWithInviteCode, linkChildToParent, loading } = useAuth();\n  const [mode, setMode] = useState<AuthMode>('parent-login');\n  \n  // Parent auth fields\n  const [email, setEmail] = useState('');\n  const [password, setPassword] = useState('');\n  const [dob, setDob] = useState('');\n  \n  // Child auth fields\n  const [inviteCode, setInviteCode] = useState('');\n  const [childName, setChildName] = useState('');\n  const [childAge, setChildAge] = useState('');\n  const [parentEmail, setParentEmail] = useState('');\n  const [parentPassword, setParentPassword] = useState('');\n\n  const handleParentLogin = async () => {\n    if (!email || !password) {\n      Alert.alert('Error', 'Please fill in all fields');\n      return;\n    }\n\n    const { error } = await signInWithEmail(email, password);\n    if (error) {\n      Alert.alert('Login Failed', error.message || 'An error occurred during login');\n    }\n  };\n\n  const handleParentSignup = async () => {\n    if (!email || !password) {\n      Alert.alert('Error', 'Please fill in all fields');\n      return;\n    }\n\n    const { error } = await signUpAsParent(email, password, dob || undefined);\n    if (error) {\n      Alert.alert('Signup Failed', error.message || 'An error occurred during signup');\n    } else {\n      Alert.alert(\n        'Success',\n        'Account created! Please check your email to verify your account.',\n        [{ text: 'OK', onPress: () => setMode('parent-login') }]\n      );\n    }\n  };\n\n  const handleChildLogin = async () => {\n    if (!inviteCode) {\n      Alert.alert('Error', 'Please enter an invite code');\n      return;\n    }\n\n    const { error, child } = await signInWithInviteCode(inviteCode);\n    if (error || !child) {\n      Alert.alert('Login Failed', 'Invalid invite code. Please check and try again.');\n    } else {\n      Alert.alert('Success', `Welcome back, ${child.name}!`);\n      // Navigate to child dashboard\n    }\n  };\n\n  const handleChildSetup = async () => {\n    if (!parentEmail || !parentPassword || !childName || !childAge) {\n      Alert.alert('Error', 'Please fill in all fields');\n      return;\n    }\n\n    const age = parseInt(childAge);\n    if (isNaN(age) || age < 3 || age > 18) {\n      Alert.alert('Error', 'Please enter a valid age between 3 and 18');\n      return;\n    }\n\n    const { error, inviteCode } = await linkChildToParent(parentEmail, parentPassword, childName, age);\n    if (error) {\n      Alert.alert('Setup Failed', error.message || 'Failed to set up child account');\n    } else {\n      Alert.alert(\n        'Child Account Created!',\n        `Invite code: ${inviteCode}\\n\\nShare this code with your child to let them sign in on their device.`,\n        [\n          { text: 'Copy Code', onPress: () => {/* Copy to clipboard */} },\n          { text: 'Done', onPress: () => setMode('parent-login') },\n        ]\n      );\n    }\n  };\n\n  const renderParentLogin = () => (\n    <>\n      <Text style={styles.title}>Parent Login</Text>\n      <TextInput\n        style={styles.input}\n        placeholder=\"Email\"\n        value={email}\n        onChangeText={setEmail}\n        keyboardType=\"email-address\"\n        autoCapitalize=\"none\"\n      />\n      <TextInput\n        style={styles.input}\n        placeholder=\"Password\"\n        value={password}\n        onChangeText={setPassword}\n        secureTextEntry\n      />\n      <TouchableOpacity \n        style={[styles.button, styles.primaryButton]} \n        onPress={handleParentLogin}\n        disabled={loading}\n      >\n        {loading ? (\n          <ActivityIndicator color=\"white\" />\n        ) : (\n          <Text style={styles.buttonText}>Sign In</Text>\n        )}\n      </TouchableOpacity>\n      \n      <TouchableOpacity onPress={() => setMode('parent-signup')}>\n        <Text style={styles.linkText}>Don't have an account? Sign up</Text>\n      </TouchableOpacity>\n      \n      <View style={styles.divider} />\n      \n      <TouchableOpacity onPress={() => setMode('child-login')}>\n        <Text style={styles.linkText}>Child Login with Invite Code</Text>\n      </TouchableOpacity>\n    </>\n  );\n\n  const renderParentSignup = () => (\n    <>\n      <Text style={styles.title}>Create Parent Account</Text>\n      <TextInput\n        style={styles.input}\n        placeholder=\"Email\"\n        value={email}\n        onChangeText={setEmail}\n        keyboardType=\"email-address\"\n        autoCapitalize=\"none\"\n      />\n      <TextInput\n        style={styles.input}\n        placeholder=\"Password\"\n        value={password}\n        onChangeText={setPassword}\n        secureTextEntry\n      />\n      <TextInput\n        style={styles.input}\n        placeholder=\"Date of Birth (YYYY-MM-DD) - Optional\"\n        value={dob}\n        onChangeText={setDob}\n        keyboardType=\"numeric\"\n      />\n      <TouchableOpacity \n        style={[styles.button, styles.primaryButton]} \n        onPress={handleParentSignup}\n        disabled={loading}\n      >\n        {loading ? (\n          <ActivityIndicator color=\"white\" />\n        ) : (\n          <Text style={styles.buttonText}>Create Account</Text>\n        )}\n      </TouchableOpacity>\n      \n      <TouchableOpacity onPress={() => setMode('parent-login')}>\n        <Text style={styles.linkText}>Already have an account? Sign in</Text>\n      </TouchableOpacity>\n      \n      <View style={styles.divider} />\n      \n      <TouchableOpacity onPress={() => setMode('child-setup')}>\n        <Text style={styles.linkText}>Set up a Child Account</Text>\n      </TouchableOpacity>\n    </>\n  );\n\n  const renderChildLogin = () => (\n    <>\n      <Text style={styles.title}>Child Login</Text>\n      <Text style={styles.subtitle}>Ask your parent for your invite code</Text>\n      <TextInput\n        style={styles.input}\n        placeholder=\"Enter Invite Code\"\n        value={inviteCode}\n        onChangeText={setInviteCode}\n        autoCapitalize=\"characters\"\n      />\n      <TouchableOpacity \n        style={[styles.button, styles.primaryButton]} \n        onPress={handleChildLogin}\n        disabled={loading}\n      >\n        {loading ? (\n          <ActivityIndicator color=\"white\" />\n        ) : (\n          <Text style={styles.buttonText}>Sign In</Text>\n        )}\n      </TouchableOpacity>\n      \n      <TouchableOpacity onPress={() => setMode('parent-login')}>\n        <Text style={styles.linkText}>Parent Login</Text>\n      </TouchableOpacity>\n    </>\n  );\n\n  const renderChildSetup = () => (\n    <>\n      <Text style={styles.title}>Set up Child Account</Text>\n      <Text style={styles.subtitle}>Create an invite code for your child</Text>\n      \n      <Text style={styles.sectionTitle}>Parent Credentials</Text>\n      <TextInput\n        style={styles.input}\n        placeholder=\"Parent Email\"\n        value={parentEmail}\n        onChangeText={setParentEmail}\n        keyboardType=\"email-address\"\n        autoCapitalize=\"none\"\n      />\n      <TextInput\n        style={styles.input}\n        placeholder=\"Parent Password\"\n        value={parentPassword}\n        onChangeText={setParentPassword}\n        secureTextEntry\n      />\n      \n      <Text style={styles.sectionTitle}>Child Information</Text>\n      <TextInput\n        style={styles.input}\n        placeholder=\"Child's Name\"\n        value={childName}\n        onChangeText={setChildName}\n      />\n      <TextInput\n        style={styles.input}\n        placeholder=\"Child's Age\"\n        value={childAge}\n        onChangeText={setChildAge}\n        keyboardType=\"numeric\"\n      />\n      \n      <TouchableOpacity \n        style={[styles.button, styles.primaryButton]} \n        onPress={handleChildSetup}\n        disabled={loading}\n      >\n        {loading ? (\n          <ActivityIndicator color=\"white\" />\n        ) : (\n          <Text style={styles.buttonText}>Create Child Account</Text>\n        )}\n      </TouchableOpacity>\n      \n      <TouchableOpacity onPress={() => setMode('parent-login')}>\n        <Text style={styles.linkText}>Back to Login</Text>\n      </TouchableOpacity>\n    </>\n  );\n\n  return (\n    <KeyboardAvoidingView \n      style={styles.container} \n      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}\n    >\n      <ScrollView contentContainerStyle={styles.scrollContainer}>\n        <Text style={styles.appTitle}>Guardianest</Text>\n        <Text style={styles.appSubtitle}>Safe AI for Kids</Text>\n        \n        {mode === 'parent-login' && renderParentLogin()}\n        {mode === 'parent-signup' && renderParentSignup()}\n        {mode === 'child-login' && renderChildLogin()}\n        {mode === 'child-setup' && renderChildSetup()}\n      </ScrollView>\n    </KeyboardAvoidingView>\n  );\n};\n\nconst styles = StyleSheet.create({\n  container: {\n    flex: 1,\n    backgroundColor: '#f8f9fa',\n  },\n  scrollContainer: {\n    flexGrow: 1,\n    justifyContent: 'center',\n    paddingHorizontal: 30,\n    paddingVertical: 50,\n  },\n  appTitle: {\n    fontSize: 32,\n    fontWeight: 'bold',\n    textAlign: 'center',\n    marginBottom: 8,\n    color: '#2c3e50',\n  },\n  appSubtitle: {\n    fontSize: 16,\n    textAlign: 'center',\n    marginBottom: 40,\n    color: '#7f8c8d',\n  },\n  title: {\n    fontSize: 24,\n    fontWeight: '600',\n    textAlign: 'center',\n    marginBottom: 8,\n    color: '#2c3e50',\n  },\n  subtitle: {\n    fontSize: 14,\n    textAlign: 'center',\n    marginBottom: 30,\n    color: '#7f8c8d',\n  },\n  sectionTitle: {\n    fontSize: 16,\n    fontWeight: '600',\n    marginTop: 20,\n    marginBottom: 10,\n    color: '#2c3e50',\n  },\n  input: {\n    backgroundColor: 'white',\n    paddingHorizontal: 15,\n    paddingVertical: 12,\n    borderRadius: 8,\n    fontSize: 16,\n    marginBottom: 15,\n    borderWidth: 1,\n    borderColor: '#e1e8ed',\n  },\n  button: {\n    paddingVertical: 15,\n    borderRadius: 8,\n    alignItems: 'center',\n    marginVertical: 10,\n  },\n  primaryButton: {\n    backgroundColor: '#3498db',\n  },\n  buttonText: {\n    color: 'white',\n    fontSize: 16,\n    fontWeight: '600',\n  },\n  linkText: {\n    color: '#3498db',\n    textAlign: 'center',\n    marginVertical: 10,\n    fontSize: 14,\n  },\n  divider: {\n    height: 1,\n    backgroundColor: '#e1e8ed',\n    marginVertical: 20,\n  },\n});\n\nexport default AuthScreen;
+import React, { useState } from 'react';
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+  Alert,
+  ScrollView,
+  KeyboardAvoidingView,
+  Platform,
+  ActivityIndicator,
+} from 'react-native';
+import { useAuth } from '../contexts/AuthContext';
+
+type AuthMode = 'parent-login' | 'parent-signup' | 'child-login' | 'child-setup';
+
+export const AuthScreen: React.FC = () => {
+  const { signInWithEmail, signUpAsParent, signInWithInviteCode, linkChildToParent, loading } = useAuth();
+  const [mode, setMode] = useState<AuthMode>('parent-login');
+  
+  // Parent auth fields
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [dob, setDob] = useState('');
+  
+  // Child auth fields
+  const [inviteCode, setInviteCode] = useState('');
+  const [childName, setChildName] = useState('');
+  const [childAge, setChildAge] = useState('');
+  const [parentEmail, setParentEmail] = useState('');
+  const [parentPassword, setParentPassword] = useState('');
+
+  const handleParentLogin = async () => {
+    if (!email || !password) {
+      Alert.alert('Error', 'Please fill in all fields');
+      return;
+    }
+
+    const { error } = await signInWithEmail(email, password);
+    if (error) {
+      Alert.alert('Login Failed', error.message || 'An error occurred during login');
+    }
+  };
+
+  const handleParentSignup = async () => {
+    if (!email || !password) {
+      Alert.alert('Error', 'Please fill in all fields');
+      return;
+    }
+
+    const { error } = await signUpAsParent(email, password, dob || undefined);
+    if (error) {
+      Alert.alert('Signup Failed', error.message || 'An error occurred during signup');
+    } else {
+      Alert.alert(
+        'Success',
+        'Account created! Please check your email to verify your account.',
+        [{ text: 'OK', onPress: () => setMode('parent-login') }]
+      );
+    }
+  };
+
+  const handleChildLogin = async () => {
+    if (!inviteCode) {
+      Alert.alert('Error', 'Please enter an invite code');
+      return;
+    }
+
+    const { error, child } = await signInWithInviteCode(inviteCode);
+    if (error || !child) {
+      Alert.alert('Login Failed', 'Invalid invite code. Please check and try again.');
+    } else {
+      Alert.alert('Success', `Welcome back, ${child.name}!`);
+      // Navigate to child dashboard
+    }
+  };
+
+  const handleChildSetup = async () => {
+    if (!parentEmail || !parentPassword || !childName || !childAge) {
+      Alert.alert('Error', 'Please fill in all fields');
+      return;
+    }
+
+    const age = parseInt(childAge);
+    if (isNaN(age) || age < 3 || age > 18) {
+      Alert.alert('Error', 'Please enter a valid age between 3 and 18');
+      return;
+    }
+
+    const { error, inviteCode } = await linkChildToParent(parentEmail, parentPassword, childName, age);
+    if (error) {
+      Alert.alert('Setup Failed', error.message || 'Failed to set up child account');
+    } else {
+      Alert.alert(
+        'Child Account Created!',
+        `Invite code: ${inviteCode}\\n\\nShare this code with your child to let them sign in on their device.`,
+        [
+          { text: 'Copy Code', onPress: () => {/* Copy to clipboard */} },
+          { text: 'Done', onPress: () => setMode('parent-login') },
+        ]
+      );
+    }
+  };
+
+  const renderParentLogin = () => (
+    <>
+      <Text style={styles.title}>Parent Login</Text>
+      <TextInput
+        style={styles.input}
+        placeholder="Email"
+        value={email}
+        onChangeText={setEmail}
+        keyboardType="email-address"
+        autoCapitalize="none"
+      />
+      <TextInput
+        style={styles.input}
+        placeholder="Password"
+        value={password}
+        onChangeText={setPassword}
+        secureTextEntry
+      />
+      <TouchableOpacity 
+        style={[styles.button, styles.primaryButton]} 
+        onPress={handleParentLogin}
+        disabled={loading}
+      >
+        {loading ? (
+          <ActivityIndicator color="white" />
+        ) : (
+          <Text style={styles.buttonText}>Sign In</Text>
+        )}
+      </TouchableOpacity>
+      
+      <TouchableOpacity onPress={() => setMode('parent-signup')}>
+        <Text style={styles.linkText}>Don't have an account? Sign up</Text>
+      </TouchableOpacity>
+      
+      <View style={styles.divider} />
+      
+      <TouchableOpacity onPress={() => setMode('child-login')}>
+        <Text style={styles.linkText}>Child Login with Invite Code</Text>
+      </TouchableOpacity>
+    </>
+  );
+
+  const renderParentSignup = () => (
+    <>
+      <Text style={styles.title}>Create Parent Account</Text>
+      <TextInput
+        style={styles.input}
+        placeholder="Email"
+        value={email}
+        onChangeText={setEmail}
+        keyboardType="email-address"
+        autoCapitalize="none"
+      />
+      <TextInput
+        style={styles.input}
+        placeholder="Password"
+        value={password}
+        onChangeText={setPassword}
+        secureTextEntry
+      />
+      <TextInput
+        style={styles.input}
+        placeholder="Date of Birth (YYYY-MM-DD) - Optional"
+        value={dob}
+        onChangeText={setDob}
+        keyboardType="numeric"
+      />
+      <TouchableOpacity 
+        style={[styles.button, styles.primaryButton]} 
+        onPress={handleParentSignup}
+        disabled={loading}
+      >
+        {loading ? (
+          <ActivityIndicator color="white" />
+        ) : (
+          <Text style={styles.buttonText}>Create Account</Text>
+        )}
+      </TouchableOpacity>
+      
+      <TouchableOpacity onPress={() => setMode('parent-login')}>
+        <Text style={styles.linkText}>Already have an account? Sign in</Text>
+      </TouchableOpacity>
+      
+      <View style={styles.divider} />
+      
+      <TouchableOpacity onPress={() => setMode('child-setup')}>
+        <Text style={styles.linkText}>Set up a Child Account</Text>
+      </TouchableOpacity>
+    </>
+  );
+
+  const renderChildLogin = () => (
+    <>
+      <Text style={styles.title}>Child Login</Text>
+      <Text style={styles.subtitle}>Ask your parent for your invite code</Text>
+      <TextInput
+        style={styles.input}
+        placeholder="Enter Invite Code"
+        value={inviteCode}
+        onChangeText={setInviteCode}
+        autoCapitalize="characters"
+      />
+      <TouchableOpacity 
+        style={[styles.button, styles.primaryButton]} 
+        onPress={handleChildLogin}
+        disabled={loading}
+      >
+        {loading ? (
+          <ActivityIndicator color="white" />
+        ) : (
+          <Text style={styles.buttonText}>Sign In</Text>
+        )}
+      </TouchableOpacity>
+      
+      <TouchableOpacity onPress={() => setMode('parent-login')}>
+        <Text style={styles.linkText}>Parent Login</Text>
+      </TouchableOpacity>
+    </>
+  );
+
+  const renderChildSetup = () => (
+    <>
+      <Text style={styles.title}>Set up Child Account</Text>
+      <Text style={styles.subtitle}>Create an invite code for your child</Text>
+      
+      <Text style={styles.sectionTitle}>Parent Credentials</Text>
+      <TextInput
+        style={styles.input}
+        placeholder="Parent Email"
+        value={parentEmail}
+        onChangeText={setParentEmail}
+        keyboardType="email-address"
+        autoCapitalize="none"
+      />
+      <TextInput
+        style={styles.input}
+        placeholder="Parent Password"
+        value={parentPassword}
+        onChangeText={setParentPassword}
+        secureTextEntry
+      />
+      
+      <Text style={styles.sectionTitle}>Child Information</Text>
+      <TextInput
+        style={styles.input}
+        placeholder="Child's Name"
+        value={childName}
+        onChangeText={setChildName}
+      />
+      <TextInput
+        style={styles.input}
+        placeholder="Child's Age"
+        value={childAge}
+        onChangeText={setChildAge}
+        keyboardType="numeric"
+      />
+      
+      <TouchableOpacity 
+        style={[styles.button, styles.primaryButton]} 
+        onPress={handleChildSetup}
+        disabled={loading}
+      >
+        {loading ? (
+          <ActivityIndicator color="white" />
+        ) : (
+          <Text style={styles.buttonText}>Create Child Account</Text>
+        )}
+      </TouchableOpacity>
+      
+      <TouchableOpacity onPress={() => setMode('parent-login')}>
+        <Text style={styles.linkText}>Back to Login</Text>
+      </TouchableOpacity>
+    </>
+  );
+
+  return (
+    <KeyboardAvoidingView 
+      style={styles.container} 
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    >
+      <ScrollView contentContainerStyle={styles.scrollContainer}>
+        <Text style={styles.appTitle}>Guardianest</Text>
+        <Text style={styles.appSubtitle}>Safe AI for Kids</Text>
+        
+        {mode === 'parent-login' && renderParentLogin()}
+        {mode === 'parent-signup' && renderParentSignup()}
+        {mode === 'child-login' && renderChildLogin()}
+        {mode === 'child-setup' && renderChildSetup()}
+      </ScrollView>
+    </KeyboardAvoidingView>
+  );
+};
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#f8f9fa',
+  },
+  scrollContainer: {
+    flexGrow: 1,
+    justifyContent: 'center',
+    paddingHorizontal: 30,
+    paddingVertical: 50,
+  },
+  appTitle: {
+    fontSize: 32,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    marginBottom: 8,
+    color: '#2c3e50',
+  },
+  appSubtitle: {
+    fontSize: 16,
+    textAlign: 'center',
+    marginBottom: 40,
+    color: '#7f8c8d',
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: '600',
+    textAlign: 'center',
+    marginBottom: 8,
+    color: '#2c3e50',
+  },
+  subtitle: {
+    fontSize: 14,
+    textAlign: 'center',
+    marginBottom: 30,
+    color: '#7f8c8d',
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginTop: 20,
+    marginBottom: 10,
+    color: '#2c3e50',
+  },
+  input: {
+    backgroundColor: 'white',
+    paddingHorizontal: 15,
+    paddingVertical: 12,
+    borderRadius: 8,
+    fontSize: 16,
+    marginBottom: 15,
+    borderWidth: 1,
+    borderColor: '#e1e8ed',
+  },
+  button: {
+    paddingVertical: 15,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginVertical: 10,
+  },
+  primaryButton: {
+    backgroundColor: '#3498db',
+  },
+  buttonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  linkText: {
+    color: '#3498db',
+    textAlign: 'center',
+    marginVertical: 10,
+    fontSize: 14,
+  },
+  divider: {
+    height: 1,
+    backgroundColor: '#e1e8ed',
+    marginVertical: 20,
+  },
+});
+
+export default AuthScreen;

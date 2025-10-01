@@ -16,7 +16,7 @@ const app = new Hono<{ Bindings: Bindings }>();
 
 // CORS middleware
 app.use('/*', cors({
-  origin: ['http://localhost:3000', 'http://localhost:8081', 'https://guardianest.vercel.app'],
+  origin: ['http://localhost:3000', 'http://localhost:8081', 'https://guardianest.vercel.app', 'null'], // 'null' allows file:// origins
   allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowHeaders: ['Content-Type', 'Authorization'],
 }));

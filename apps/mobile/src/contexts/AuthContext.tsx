@@ -1,1 +1,228 @@
-import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';\nimport { Session, User } from '@supabase/supabase-js';\nimport {\n  supabase,\n  signUp,\n  signIn,\n  signOut,\n  getCurrentUser,\n  getProfile,\n  createProfile,\n  getChildByInviteCode,\n  createChild,\n} from '@guardianest/shared';\nimport type { Profile, Child } from '@guardianest/shared';\n\ninterface AuthContextType {\n  session: Session | null;\n  user: User | null;\n  profile: Profile | null;\n  loading: boolean;\n  signInWithEmail: (email: string, password: string) => Promise<{ error: any }>;\n  signUpAsParent: (email: string, password: string, dob?: string) => Promise<{ error: any }>;\n  signInWithInviteCode: (inviteCode: string) => Promise<{ error: any; child?: Child }>;\n  linkChildToParent: (parentEmail: string, password: string, childName: string, childAge: number) => Promise<{ error: any; inviteCode?: string }>;\n  signOutUser: () => Promise<void>;\n  refreshProfile: () => Promise<void>;\n}\n\nconst AuthContext = createContext<AuthContextType | undefined>(undefined);\n\nexport const useAuth = () => {\n  const context = useContext(AuthContext);\n  if (context === undefined) {\n    throw new Error('useAuth must be used within an AuthProvider');\n  }\n  return context;\n};\n\ninterface AuthProviderProps {\n  children: ReactNode;\n}\n\nexport const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {\n  const [session, setSession] = useState<Session | null>(null);\n  const [user, setUser] = useState<User | null>(null);\n  const [profile, setProfile] = useState<Profile | null>(null);\n  const [loading, setLoading] = useState(true);\n\n  useEffect(() => {\n    // Get initial session\n    supabase.auth.getSession().then(({ data: { session } }) => {\n      setSession(session);\n      setUser(session?.user ?? null);\n      if (session?.user) {\n        loadProfile(session.user.id);\n      } else {\n        setLoading(false);\n      }\n    });\n\n    // Listen for auth changes\n    const {\n      data: { subscription },\n    } = supabase.auth.onAuthStateChange(async (event, session) => {\n      setSession(session);\n      setUser(session?.user ?? null);\n      \n      if (session?.user) {\n        await loadProfile(session.user.id);\n      } else {\n        setProfile(null);\n        setLoading(false);\n      }\n    });\n\n    return () => subscription.unsubscribe();\n  }, []);\n\n  const loadProfile = async (userId: string) => {\n    try {\n      const { data, error } = await getProfile(userId);\n      if (error) {\n        console.error('Error loading profile:', error);\n      } else {\n        setProfile(data);\n      }\n    } catch (error) {\n      console.error('Error loading profile:', error);\n    } finally {\n      setLoading(false);\n    }\n  };\n\n  const signInWithEmail = async (email: string, password: string) => {\n    try {\n      setLoading(true);\n      const { error } = await signIn(email, password);\n      return { error };\n    } catch (error) {\n      return { error };\n    }\n  };\n\n  const signUpAsParent = async (email: string, password: string, dob?: string) => {\n    try {\n      setLoading(true);\n      \n      // Sign up the user\n      const { data: authData, error: authError } = await signUp(email, password);\n      if (authError) {\n        return { error: authError };\n      }\n\n      if (authData.user) {\n        // Create parent profile\n        const { error: profileError } = await createProfile({\n          id: authData.user.id,\n          role: 'parent',\n          dob: dob || undefined,\n          tier: 'free',\n        });\n        \n        if (profileError) {\n          console.error('Error creating profile:', profileError);\n          return { error: profileError };\n        }\n      }\n\n      return { error: null };\n    } catch (error) {\n      return { error };\n    }\n  };\n\n  const signInWithInviteCode = async (inviteCode: string) => {\n    try {\n      setLoading(true);\n      \n      // Find child by invite code\n      const { data: child, error: childError } = await getChildByInviteCode(inviteCode);\n      if (childError || !child) {\n        return { error: childError || new Error('Invalid invite code') };\n      }\n\n      // For demo purposes, we'll create a simple auth session for the child\n      // In production, you'd want a more secure approach\n      const childAuthData = {\n        id: `child_${child.id}`,\n        email: `${child.name.toLowerCase()}@child.guardianest`,\n        created_at: child.created_at,\n      } as User;\n\n      // You would typically handle child authentication differently\n      // This is a simplified approach for the MVP\n      \n      return { error: null, child };\n    } catch (error) {\n      return { error, child: undefined };\n    }\n  };\n\n  const linkChildToParent = async (\n    parentEmail: string,\n    password: string,\n    childName: string,\n    childAge: number\n  ) => {\n    try {\n      setLoading(true);\n      \n      // First sign in as parent to get parent ID\n      const { data: authData, error: authError } = await signIn(parentEmail, password);\n      if (authError || !authData.user) {\n        return { error: authError || new Error('Invalid parent credentials') };\n      }\n\n      // Create child record\n      const { data: child, error: childError } = await createChild({\n        parent_id: authData.user.id,\n        name: childName,\n        age: childAge,\n      });\n\n      if (childError || !child) {\n        return { error: childError || new Error('Failed to create child') };\n      }\n\n      return { error: null, inviteCode: child.invite_code };\n    } catch (error) {\n      return { error, inviteCode: undefined };\n    }\n  };\n\n  const signOutUser = async () => {\n    try {\n      setLoading(true);\n      await signOut();\n      setSession(null);\n      setUser(null);\n      setProfile(null);\n    } catch (error) {\n      console.error('Error signing out:', error);\n    } finally {\n      setLoading(false);\n    }\n  };\n\n  const refreshProfile = async () => {\n    if (user) {\n      await loadProfile(user.id);\n    }\n  };\n\n  const value: AuthContextType = {\n    session,\n    user,\n    profile,\n    loading,\n    signInWithEmail,\n    signUpAsParent,\n    signInWithInviteCode,\n    linkChildToParent,\n    signOutUser,\n    refreshProfile,\n  };\n\n  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;\n};
+import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import { Session, User } from '@supabase/supabase-js';
+import {
+  supabase,
+  signUp,
+  signIn,
+  signOut,
+  getCurrentUser,
+  getProfile,
+  createProfile,
+  getChildByInviteCode,
+  createChild,
+} from '@guardianest/shared';
+import type { Profile, Child } from '@guardianest/shared';
+
+interface AuthContextType {
+  session: Session | null;
+  user: User | null;
+  profile: Profile | null;
+  loading: boolean;
+  signInWithEmail: (email: string, password: string) => Promise<{ error: any }>;
+  signUpAsParent: (email: string, password: string, dob?: string) => Promise<{ error: any }>;
+  signInWithInviteCode: (inviteCode: string) => Promise<{ error: any; child?: Child }>;
+  linkChildToParent: (parentEmail: string, password: string, childName: string, childAge: number) => Promise<{ error: any; inviteCode?: string }>;
+  signOutUser: () => Promise<void>;
+  refreshProfile: () => Promise<void>;
+}
+
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (context === undefined) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
+};
+
+interface AuthProviderProps {
+  children: ReactNode;
+}
+
+export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
+  const [session, setSession] = useState<Session | null>(null);
+  const [user, setUser] = useState<User | null>(null);
+  const [profile, setProfile] = useState<Profile | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    // Get initial session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      setUser(session?.user ?? null);
+      if (session?.user) {
+        loadProfile(session.user.id);
+      } else {
+        setLoading(false);
+      }
+    });
+
+    // Listen for auth changes
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(async (event, session) => {
+      setSession(session);
+      setUser(session?.user ?? null);
+      
+      if (session?.user) {
+        await loadProfile(session.user.id);
+      } else {
+        setProfile(null);
+        setLoading(false);
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const loadProfile = async (userId: string) => {
+    try {
+      const { data, error } = await getProfile(userId);
+      if (error) {
+        console.error('Error loading profile:', error);
+      } else {
+        setProfile(data);
+      }
+    } catch (error) {
+      console.error('Error loading profile:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const signInWithEmail = async (email: string, password: string) => {
+    try {
+      setLoading(true);
+      const { error } = await signIn(email, password);
+      return { error };
+    } catch (error) {
+      return { error };
+    }
+  };
+
+  const signUpAsParent = async (email: string, password: string, dob?: string) => {
+    try {
+      setLoading(true);
+      
+      // Sign up the user
+      const { data: authData, error: authError } = await signUp(email, password);
+      if (authError) {
+        return { error: authError };
+      }
+
+      if (authData.user) {
+        // Create parent profile
+        const { error: profileError } = await createProfile({
+          id: authData.user.id,
+          role: 'parent',
+          dob: dob || undefined,
+          tier: 'free',
+        });
+        
+        if (profileError) {
+          console.error('Error creating profile:', profileError);
+          return { error: profileError };
+        }
+      }
+
+      return { error: null };
+    } catch (error) {
+      return { error };
+    }
+  };
+
+  const signInWithInviteCode = async (inviteCode: string) => {
+    try {
+      setLoading(true);
+      
+      // Find child by invite code
+      const { data: child, error: childError } = await getChildByInviteCode(inviteCode);
+      if (childError || !child) {
+        return { error: childError || new Error('Invalid invite code') };
+      }
+
+      // For demo purposes, we'll create a simple auth session for the child
+      // In production, you'd want a more secure approach
+      const childAuthData = {
+        id: `child_${child.id}`,
+        email: `${child.name.toLowerCase()}@child.guardianest`,
+        created_at: child.created_at,
+      } as User;
+
+      // You would typically handle child authentication differently
+      // This is a simplified approach for the MVP
+      
+      return { error: null, child };
+    } catch (error) {
+      return { error, child: undefined };
+    }
+  };
+
+  const linkChildToParent = async (
+    parentEmail: string,
+    password: string,
+    childName: string,
+    childAge: number
+  ) => {
+    try {
+      setLoading(true);
+      
+      // First sign in as parent to get parent ID
+      const { data: authData, error: authError } = await signIn(parentEmail, password);
+      if (authError || !authData.user) {
+        return { error: authError || new Error('Invalid parent credentials') };
+      }
+
+      // Create child record
+      const { data: child, error: childError } = await createChild({
+        parent_id: authData.user.id,
+        name: childName,
+        age: childAge,
+      });
+
+      if (childError || !child) {
+        return { error: childError || new Error('Failed to create child') };
+      }
+
+      return { error: null, inviteCode: child.invite_code };
+    } catch (error) {
+      return { error, inviteCode: undefined };
+    }
+  };
+
+  const signOutUser = async () => {
+    try {
+      setLoading(true);
+      await signOut();
+      setSession(null);
+      setUser(null);
+      setProfile(null);
+    } catch (error) {
+      console.error('Error signing out:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const refreshProfile = async () => {
+    if (user) {
+      await loadProfile(user.id);
+    }
+  };
+
+  const value: AuthContextType = {
+    session,
+    user,
+    profile,
+    loading,
+    signInWithEmail,
+    signUpAsParent,
+    signInWithInviteCode,
+    linkChildToParent,
+    signOutUser,
+    refreshProfile,
+  };
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+};

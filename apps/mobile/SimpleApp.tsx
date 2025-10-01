@@ -5,30 +5,29 @@ import {
   Text, 
   View, 
   TouchableOpacity, 
+  TextInput,
   ScrollView,
   Alert,
-  TextInput,
-  Dimensions 
+  SafeAreaView
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 
-const { width } = Dimensions.get('window');
+// Simple Chat Message Component
+interface Message {
+  text: string;
+  isUser: boolean;
+}
 
 // Feature Card Component
-interface FeatureCardProps {
+const FeatureCard = ({ title, description, icon, color, onPress }: {
   title: string;
   description: string;
   icon: string;
   color: string;
   onPress: () => void;
-}
-
-const FeatureCard: React.FC<FeatureCardProps> = ({ title, description, icon, color, onPress }) => (
+}) => (
   <TouchableOpacity style={styles.featureCard} onPress={onPress}>
-    <LinearGradient
-      colors={[color, color + '90']}
-      style={styles.featureGradient}
-    >
+    <LinearGradient colors={[color, color + '90']} style={styles.featureGradient}>
       <Text style={styles.featureIcon}>{icon}</Text>
       <Text style={styles.featureTitle}>{title}</Text>
       <Text style={styles.featureDescription}>{description}</Text>
@@ -37,8 +36,8 @@ const FeatureCard: React.FC<FeatureCardProps> = ({ title, description, icon, col
 );
 
 // Chat Screen Component
-const ChatScreen: React.FC<{ chatType: string; onBack: () => void }> = ({ chatType, onBack }) => {
-  const [messages, setMessages] = useState<Array<{text: string, isUser: boolean}>>([]);
+const ChatScreen = ({ chatType, onBack }: { chatType: string; onBack: () => void }) => {
+  const [messages, setMessages] = useState<Message[]>([]);
   const [inputText, setInputText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
@@ -78,11 +77,8 @@ const ChatScreen: React.FC<{ chatType: string; onBack: () => void }> = ({ chatTy
   };
 
   return (
-    <View style={styles.container}>
-      <LinearGradient
-        colors={['#667eea', '#764ba2']}
-        style={styles.chatHeader}
-      >
+    <SafeAreaView style={styles.container}>
+      <LinearGradient colors={['#667eea', '#764ba2']} style={styles.chatHeader}>
         <TouchableOpacity onPress={onBack} style={styles.backButton}>
           <Text style={styles.backButtonText}>← Back</Text>
         </TouchableOpacity>
@@ -91,7 +87,7 @@ const ChatScreen: React.FC<{ chatType: string; onBack: () => void }> = ({ chatTy
         </Text>
       </LinearGradient>
       
-      <ScrollView style={styles.messagesContainer} showsVerticalScrollIndicator={false}>
+      <ScrollView style={styles.messagesContainer}>
         {messages.length === 0 && (
           <View style={styles.welcomeMessage}>
             <Text style={styles.welcomeText}>
@@ -124,7 +120,6 @@ const ChatScreen: React.FC<{ chatType: string; onBack: () => void }> = ({ chatTy
           onChangeText={setInputText}
           placeholder={chatType === 'homework' ? "Ask about your homework..." : "Tell me what story you'd like..."}
           multiline
-          onSubmitEditing={sendMessage}
         />
         <TouchableOpacity 
           style={[styles.sendButton, !inputText.trim() && styles.sendButtonDisabled]} 
@@ -134,12 +129,12 @@ const ChatScreen: React.FC<{ chatType: string; onBack: () => void }> = ({ chatTy
           <Text style={styles.sendButtonText}>Send</Text>
         </TouchableOpacity>
       </View>
-    </View>
+    </SafeAreaView>
   );
 };
 
 // Main App Component
-export default function App() {
+export default function SimpleApp() {
   const [currentScreen, setCurrentScreen] = useState<'dashboard' | 'chat'>('dashboard');
   const [chatType, setChatType] = useState<string>('homework');
 
@@ -164,28 +159,6 @@ export default function App() {
         setCurrentScreen('chat');
       },
     },
-    {
-      title: "📸 Photo Helper",
-      description: "Take a photo of your homework",
-      icon: "📷",
-      color: "#FF9800",
-      action: () => Alert.alert("Coming Soon!", "Photo homework scanning will be available soon! 📸"),
-    },
-    {
-      title: "🎯 Test Server",
-      description: "Test if the API server is working",
-      icon: "🧪",
-      color: "#2196F3",
-      action: async () => {
-        try {
-          const response = await fetch('http://127.0.0.1:8787/health');
-          const data = await response.json();
-          Alert.alert("Server Status", `✅ Server is running!\n\nService: ${data.service}\nVersion: ${data.version}\nTime: ${new Date(data.time).toLocaleString()}`);
-        } catch (error) {
-          Alert.alert("Server Status", "❌ Server is not responding.\n\nMake sure the server is running on port 8787.");
-        }
-      },
-    },
   ];
 
   if (currentScreen === 'chat') {
@@ -193,22 +166,17 @@ export default function App() {
   }
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <StatusBar style="light" />
-      <ScrollView showsVerticalScrollIndicator={false}>
-        {/* Header Section */}
-        <LinearGradient
-          colors={['#667eea', '#764ba2']}
-          style={styles.header}
-        >
+      <ScrollView>
+        <LinearGradient colors={['#667eea', '#764ba2']} style={styles.header}>
           <Text style={styles.welcomeTitle}>Welcome to Guardianest! 👋</Text>
           <Text style={styles.welcomeSubtitle}>Your AI Learning Companion</Text>
           <View style={styles.profileBadge}>
-            <Text style={styles.profileText}>🎓 Web Demo</Text>
+            <Text style={styles.profileText}>🎓 Mobile Demo</Text>
           </View>
         </LinearGradient>
 
-        {/* Features Grid */}
         <View style={styles.featuresContainer}>
           <Text style={styles.sectionTitle}>What would you like to do?</Text>
           
@@ -225,26 +193,8 @@ export default function App() {
             ))}
           </View>
         </View>
-
-        {/* Info Section */}
-        <View style={styles.infoContainer}>
-          <Text style={styles.sectionTitle}>About Guardianest</Text>
-          <Text style={styles.infoText}>
-            Guardianest is an AI-powered learning assistant designed to help children with their homework 
-            and provide engaging educational stories. Our AI tutor guides students to learn through 
-            understanding, not just answers.
-          </Text>
-          <Text style={styles.infoText}>
-            ✨ Safe and age-appropriate responses{"\n"}
-            📚 Homework help across all subjects{"\n"}
-            📖 Creative storytelling{"\n"}
-            🔒 Privacy-focused and secure
-          </Text>
-        </View>
-        
-        <View style={styles.bottomPadding} />
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -253,11 +203,9 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#f8f9fa',
   },
-
-  // Header Styles
   header: {
     paddingHorizontal: 20,
-    paddingTop: 50,
+    paddingTop: 40,
     paddingBottom: 30,
     borderBottomLeftRadius: 25,
     borderBottomRightRadius: 25,
@@ -288,8 +236,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
   },
-
-  // Features Styles
   featuresContainer: {
     padding: 20,
   },
@@ -306,7 +252,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   featureCard: {
-    width: width > 600 ? (width - 80) / 4 : (width - 60) / 2,
+    width: '47%',
     marginBottom: 15,
     borderRadius: 15,
     overflow: 'hidden',
@@ -339,21 +285,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     opacity: 0.9,
   },
-
-  // Info Section Styles
-  infoContainer: {
-    paddingHorizontal: 20,
-    marginTop: 10,
-  },
-  infoText: {
-    fontSize: 14,
-    color: '#5a6c7d',
-    lineHeight: 22,
-    marginBottom: 15,
-    textAlign: 'center',
-  },
-
-  // Chat Screen Styles
   chatHeader: {
     paddingHorizontal: 20,
     paddingTop: 50,
@@ -379,7 +310,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     flex: 1,
   },
-  
   messagesContainer: {
     flex: 1,
     paddingHorizontal: 20,
@@ -425,7 +355,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontStyle: 'italic',
   },
-  
   inputContainer: {
     flexDirection: 'row',
     paddingHorizontal: 20,
@@ -459,9 +388,5 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     fontSize: 14,
     fontWeight: '600',
-  },
-
-  bottomPadding: {
-    height: 20,
   },
 });

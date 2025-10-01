@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Guardianest - AI Learning Assistant</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 40px;
+            padding: 40px 20px;
+        }
+
+        .header h1 {
+            font-size: 3rem;
+            margin-bottom: 10px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            font-size: 1.2rem;
+            opacity: 0.9;
+            margin-bottom: 20px;
+        }
+
+        .badge {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 10px 20px;
+            border-radius: 25px;
+            display: inline-block;
+            font-weight: 600;
+        }
+
+        .features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+
+        .feature-card {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            cursor: pointer;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.15);
+        }
+
+        .feature-card.homework { border-top: 5px solid #4CAF50; }
+        .feature-card.story { border-top: 5px solid #9C27B0; }
+        .feature-card.photo { border-top: 5px solid #FF9800; }
+        .feature-card.test { border-top: 5px solid #2196F3; }
+
+        .feature-icon {
+            font-size: 3rem;
+            margin-bottom: 15px;
+        }
+
+        .feature-title {
+            font-size: 1.4rem;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #2c3e50;
+        }
+
+        .feature-description {
+            color: #7f8c8d;
+            line-height: 1.6;
+        }
+
+        .chat-container {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            margin: 20px 0;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            display: none;
+        }
+
+        .chat-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 15px;
+            margin-bottom: 20px;
+            text-align: center;
+            position: relative;
+        }
+
+        .back-btn {
+            position: absolute;
+            left: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            padding: 10px 15px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .chat-messages {
+            height: 400px;
+            overflow-y: auto;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 15px;
+            margin-bottom: 20px;
+        }
+
+        .message {
+            margin-bottom: 15px;
+            padding: 12px 18px;
+            border-radius: 20px;
+            max-width: 70%;
+            word-wrap: break-word;
+        }
+
+        .user-message {
+            background: #667eea;
+            color: white;
+            margin-left: auto;
+            border-bottom-right-radius: 5px;
+        }
+
+        .ai-message {
+            background: white;
+            color: #2c3e50;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            border-bottom-left-radius: 5px;
+        }
+
+        .welcome-message {
+            background: #e3f2fd;
+            color: #1976d2;
+            padding: 20px;
+            border-radius: 15px;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .input-container {
+            display: flex;
+            gap: 10px;
+        }
+
+        .chat-input {
+            flex: 1;
+            padding: 15px;
+            border: 2px solid #e1e8ed;
+            border-radius: 25px;
+            font-size: 16px;
+            outline: none;
+            resize: none;
+        }
+
+        .chat-input:focus {
+            border-color: #667eea;
+        }
+
+        .send-btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 15px 25px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: background 0.3s ease;
+        }
+
+        .send-btn:hover {
+            background: #5a6fd8;
+        }
+
+        .send-btn:disabled {
+            background: #bdc3c7;
+            cursor: not-allowed;
+        }
+
+        .loading {
+            color: #7f8c8d;
+            font-style: italic;
+        }
+
+        .info-section {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            margin-top: 40px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+
+        .info-section h2 {
+            color: #2c3e50;
+            font-size: 2rem;
+            margin-bottom: 20px;
+        }
+
+        .info-section p {
+            color: #5a6c7d;
+            line-height: 1.8;
+            margin-bottom: 20px;
+            font-size: 1.1rem;
+        }
+
+        .features-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-top: 30px;
+        }
+
+        .feature-item {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 15px;
+            text-align: left;
+        }
+
+        .status-indicator {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 10px 20px;
+            border-radius: 25px;
+            color: white;
+            font-weight: 600;
+            z-index: 1000;
+        }
+
+        .status-online { background: #4CAF50; }
+        .status-offline { background: #f44336; }
+
+        @media (max-width: 768px) {
+            .header h1 { font-size: 2rem; }
+            .features { grid-template-columns: 1fr; }
+            .container { padding: 10px; }
+        }
+    </style>
+</head>
+<body>
+    <div id="statusIndicator" class="status-indicator status-offline">🔴 Checking server...</div>
+    
+    <div class="container">
+        <div id="dashboard">
+            <div class="header">
+                <h1>Welcome to Guardianest! 👋</h1>
+                <p>Your AI Learning Companion</p>
+                <div class="badge">🎓 Web Demo</div>
+            </div>
+
+            <div class="features">
+                <div class="feature-card homework" onclick="startChat('homework')">
+                    <div class="feature-icon">🤖</div>
+                    <div class="feature-title">📚 Homework Helper</div>
+                    <div class="feature-description">Get help with math, reading, and more!</div>
+                </div>
+
+                <div class="feature-card story" onclick="startChat('story')">
+                    <div class="feature-icon">✨</div>
+                    <div class="feature-title">📖 Story Time</div>
+                    <div class="feature-description">Listen to magical bedtime stories</div>
+                </div>
+
+                <div class="feature-card photo" onclick="showComingSoon()">
+                    <div class="feature-icon">📷</div>
+                    <div class="feature-title">📸 Photo Helper</div>
+                    <div class="feature-description">Take a photo of your homework</div>
+                </div>
+
+                <div class="feature-card test" onclick="testServer()">
+                    <div class="feature-icon">🧪</div>
+                    <div class="feature-title">🎯 Test Server</div>
+                    <div class="feature-description">Test if the API server is working</div>
+                </div>
+            </div>
+
+            <div class="info-section">
+                <h2>About Guardianest</h2>
+                <p>Guardianest is an AI-powered learning assistant designed to help children with their homework and provide engaging educational stories. Our AI tutor guides students to learn through understanding, not just answers.</p>
+                
+                <div class="features-list">
+                    <div class="feature-item">
+                        <strong>✨ Safe & Age-Appropriate</strong><br>
+                        All responses are carefully crafted for children
+                    </div>
+                    <div class="feature-item">
+                        <strong>📚 Homework Help</strong><br>
+                        Support across all subjects and grade levels
+                    </div>
+                    <div class="feature-item">
+                        <strong>📖 Creative Stories</strong><br>
+                        Engaging and educational storytelling
+                    </div>
+                    <div class="feature-item">
+                        <strong>🔒 Privacy-Focused</strong><br>
+                        Your data stays secure and private
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="chatContainer" class="chat-container">
+            <div class="chat-header">
+                <button class="back-btn" onclick="backToDashboard()">← Back</button>
+                <h2 id="chatTitle">Chat</h2>
+            </div>
+            <div id="chatMessages" class="chat-messages">
+                <div class="welcome-message">
+                    <p id="welcomeText">Welcome! How can I help you today?</p>
+                </div>
+            </div>
+            <div class="input-container">
+                <textarea id="chatInput" class="chat-input" placeholder="Ask me anything..." rows="1"></textarea>
+                <button id="sendBtn" class="send-btn" onclick="sendMessage()">Send</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentChatType = 'homework';
+        let isLoading = false;
+
+        // Check server status on load
+        window.onload = function() {
+            checkServerStatus();
+        };
+
+        async function checkServerStatus() {
+            const statusIndicator = document.getElementById('statusIndicator');
+            try {
+                const response = await fetch('http://127.0.0.1:8787/health');
+                const data = await response.json();
+                statusIndicator.className = 'status-indicator status-online';
+                statusIndicator.textContent = '🟢 Server Online';
+            } catch (error) {
+                statusIndicator.className = 'status-indicator status-offline';
+                statusIndicator.textContent = '🔴 Server Offline';
+            }
+        }
+
+        function startChat(type) {
+            currentChatType = type;
+            const chatTitle = document.getElementById('chatTitle');
+            const welcomeText = document.getElementById('welcomeText');
+            
+            if (type === 'homework') {
+                chatTitle.textContent = '📚 Homework Helper';
+                welcomeText.textContent = "Hi! I'm here to help you with your homework. What subject are you working on?";
+            } else {
+                chatTitle.textContent = '📖 Story Time';
+                welcomeText.textContent = "Hi! I'd love to tell you a story. What kind of story would you like to hear?";
+            }
+            
+            // Clear previous messages except welcome
+            const chatMessages = document.getElementById('chatMessages');
+            const messages = chatMessages.querySelectorAll('.message');
+            messages.forEach(msg => msg.remove());
+            
+            document.getElementById('dashboard').style.display = 'none';
+            document.getElementById('chatContainer').style.display = 'block';
+            document.getElementById('chatInput').focus();
+        }
+
+        function backToDashboard() {
+            document.getElementById('dashboard').style.display = 'block';
+            document.getElementById('chatContainer').style.display = 'none';
+        }
+
+        async function sendMessage() {
+            const input = document.getElementById('chatInput');
+            const message = input.value.trim();
+            
+            if (!message || isLoading) return;
+            
+            isLoading = true;
+            const sendBtn = document.getElementById('sendBtn');
+            sendBtn.disabled = true;
+            sendBtn.textContent = 'Sending...';
+            
+            // Add user message
+            addMessage(message, 'user');
+            input.value = '';
+            
+            // Add loading message
+            const loadingDiv = addMessage('Thinking... 🤔', 'ai', 'loading');
+            
+            try {
+                const response = await fetch('http://127.0.0.1:8787/ai/complete', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        text: message,
+                        type: currentChatType,
+                        childAge: 8
+                    })
+                });
+
+                const data = await response.json();
+                
+                // Remove loading message
+                loadingDiv.remove();
+                
+                if (data.success) {
+                    addMessage(data.data.response, 'ai');
+                } else {
+                    addMessage('Sorry, I had trouble understanding that. Can you try again?', 'ai');
+                }
+            } catch (error) {
+                loadingDiv.remove();
+                addMessage("Sorry, I'm having trouble connecting. Please check that the server is running on port 8787!", 'ai');
+            }
+            
+            isLoading = false;
+            sendBtn.disabled = false;
+            sendBtn.textContent = 'Send';
+        }
+
+        function addMessage(text, sender, extraClass = '') {
+            const chatMessages = document.getElementById('chatMessages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${sender}-message ${extraClass}`;
+            messageDiv.textContent = text;
+            chatMessages.appendChild(messageDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+            return messageDiv;
+        }
+
+        async function testServer() {
+            try {
+                const response = await fetch('http://127.0.0.1:8787/health');
+                const data = await response.json();
+                alert(`✅ Server is running!
+
+Service: ${data.service}
+Version: ${data.version}
+Time: ${new Date(data.time).toLocaleString()}`);
+            } catch (error) {
+                alert(`❌ Server is not responding.
+
+Make sure the server is running on port 8787.
+
+You can start it by running:
+npm run dev:server`);
+            }
+        }
+
+        function showComingSoon() {
+            alert('Coming Soon! 📸\n\nPhoto homework scanning will be available soon!');
+        }
+
+        // Handle Enter key in textarea
+        document.getElementById('chatInput').addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+        });
+
+        // Auto-resize textarea
+        document.getElementById('chatInput').addEventListener('input', function() {
+            this.style.height = 'auto';
+            this.style.height = Math.min(this.scrollHeight, 120) + 'px';
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Guardianest Mobile - AI Learning Assistant</title>
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+            overflow-x: hidden;
+            position: fixed;
+            width: 100%;
+            height: 100%;
+        }
+
+        .app {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px 20px 30px 20px;
+            text-align: center;
+            position: relative;
+        }
+
+        .header.chat-header {
+            flex-direction: row;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .back-btn {
+            position: absolute;
+            left: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            padding: 8px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .header h1 {
+            font-size: 24px;
+            margin-bottom: 8px;
+            font-weight: 700;
+        }
+
+        .header p {
+            font-size: 14px;
+            opacity: 0.9;
+            margin-bottom: 15px;
+        }
+
+        .badge {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 6px 12px;
+            border-radius: 15px;
+            display: inline-block;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .main-content {
+            flex: 1;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            padding: 0 0 20px 0;
+        }
+
+        .features {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            padding: 20px;
+        }
+
+        .feature-card {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            cursor: pointer;
+            transition: transform 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .feature-card:active {
+            transform: scale(0.98);
+        }
+
+        .feature-card.homework { border-left: 4px solid #4CAF50; }
+        .feature-card.story { border-left: 4px solid #9C27B0; }
+        .feature-card.photo { border-left: 4px solid #FF9800; }
+        .feature-card.test { border-left: 4px solid #2196F3; }
+
+        .feature-icon {
+            font-size: 32px;
+            width: 50px;
+            text-align: center;
+        }
+
+        .feature-content {
+            flex: 1;
+        }
+
+        .feature-title {
+            font-size: 16px;
+            font-weight: 700;
+            color: #2c3e50;
+            margin-bottom: 4px;
+        }
+
+        .feature-description {
+            font-size: 14px;
+            color: #7f8c8d;
+            line-height: 1.4;
+        }
+
+        /* Chat Screen Styles */
+        .chat-container {
+            display: none;
+            flex-direction: column;
+            height: 100vh;
+        }
+
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            padding: 20px 15px;
+            background: #f8f9fa;
+        }
+
+        .welcome-message {
+            background: linear-gradient(135deg, #e3f2fd, #bbdefb);
+            color: #1976d2;
+            padding: 15px;
+            border-radius: 12px;
+            text-align: center;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+
+        .message {
+            margin-bottom: 12px;
+            max-width: 85%;
+            word-wrap: break-word;
+        }
+
+        .user-message {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 12px 15px;
+            border-radius: 18px 18px 5px 18px;
+            margin-left: auto;
+            font-size: 14px;
+        }
+
+        .ai-message {
+            background: white;
+            color: #2c3e50;
+            padding: 12px 15px;
+            border-radius: 18px 18px 18px 5px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            font-size: 14px;
+            line-height: 1.4;
+        }
+
+        .loading-message {
+            background: #f1f3f4;
+            color: #7f8c8d;
+            padding: 12px 15px;
+            border-radius: 18px 18px 18px 5px;
+            font-style: italic;
+            font-size: 14px;
+        }
+
+        .input-container {
+            background: white;
+            border-top: 1px solid #e1e8ed;
+            padding: 15px;
+            display: flex;
+            gap: 10px;
+            align-items: flex-end;
+        }
+
+        .chat-input {
+            flex: 1;
+            border: 1px solid #e1e8ed;
+            border-radius: 20px;
+            padding: 10px 15px;
+            font-size: 16px; /* Prevents zoom on iOS */
+            resize: none;
+            max-height: 100px;
+            min-height: 40px;
+            outline: none;
+            font-family: inherit;
+        }
+
+        .chat-input:focus {
+            border-color: #667eea;
+        }
+
+        .send-btn {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            width: 40px;
+            height: 40px;
+            border-radius: 20px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            transition: opacity 0.2s ease;
+        }
+
+        .send-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .send-btn:active:not(:disabled) {
+            transform: scale(0.95);
+        }
+
+        .info-section {
+            background: white;
+            margin: 0 20px 20px 20px;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        .info-section h2 {
+            color: #2c3e50;
+            font-size: 18px;
+            margin-bottom: 12px;
+            text-align: center;
+        }
+
+        .info-section p {
+            color: #5a6c7d;
+            line-height: 1.6;
+            margin-bottom: 15px;
+            font-size: 14px;
+            text-align: center;
+        }
+
+        .features-list {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .feature-item {
+            background: #f8f9fa;
+            padding: 12px;
+            border-radius: 8px;
+            text-align: center;
+            font-size: 12px;
+        }
+
+        .status-indicator {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            padding: 6px 10px;
+            border-radius: 12px;
+            color: white;
+            font-size: 11px;
+            font-weight: 600;
+            z-index: 1000;
+        }
+
+        .status-online { background: #4CAF50; }
+        .status-offline { background: #f44336; }
+
+        /* Responsive adjustments */
+        @media (max-width: 480px) {
+            .header h1 { font-size: 20px; }
+            .features { padding: 15px; }
+            .feature-card { padding: 15px; }
+            .feature-icon { font-size: 28px; width: 45px; }
+            .chat-messages { padding: 15px 10px; }
+            .input-container { padding: 12px; }
+        }
+
+        /* PWA styles */
+        .install-prompt {
+            background: rgba(0,0,0,0.8);
+            color: white;
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            right: 20px;
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+            display: none;
+            z-index: 1001;
+        }
+
+        .install-btn {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 5px;
+            margin: 5px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div id="statusIndicator" class="status-indicator status-offline">🔴 Checking...</div>
+    
+    <div id="installPrompt" class="install-prompt">
+        <p>📱 Add Guardianest to your home screen for the full app experience!</p>
+        <button id="installBtn" class="install-btn">Install App</button>
+        <button onclick="hideInstallPrompt()" class="install-btn" style="background: #666;">Later</button>
+    </div>
+
+    <div class="app" id="dashboard">
+        <div class="header">
+            <h1>Guardianest 👋</h1>
+            <p>Your AI Learning Companion</p>
+            <div class="badge">📱 Mobile Ready</div>
+        </div>
+
+        <div class="main-content">
+            <div class="features">
+                <div class="feature-card homework" onclick="startChat('homework')">
+                    <div class="feature-icon">🤖</div>
+                    <div class="feature-content">
+                        <div class="feature-title">📚 Homework Helper</div>
+                        <div class="feature-description">Get help with math, reading, and more!</div>
+                    </div>
+                </div>
+
+                <div class="feature-card story" onclick="startChat('story')">
+                    <div class="feature-icon">✨</div>
+                    <div class="feature-content">
+                        <div class="feature-title">📖 Story Time</div>
+                        <div class="feature-description">Listen to magical bedtime stories</div>
+                    </div>
+                </div>
+
+                <div class="feature-card photo" onclick="showComingSoon()">
+                    <div class="feature-icon">📷</div>
+                    <div class="feature-content">
+                        <div class="feature-title">📸 Photo Helper</div>
+                        <div class="feature-description">Take a photo of your homework</div>
+                    </div>
+                </div>
+
+                <div class="feature-card test" onclick="testServer()">
+                    <div class="feature-icon">🧪</div>
+                    <div class="feature-content">
+                        <div class="feature-title">🎯 Test Server</div>
+                        <div class="feature-description">Check if AI server is running</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="info-section">
+                <h2>About Guardianest</h2>
+                <p>AI-powered learning assistant designed to help children with homework and provide engaging educational stories.</p>
+                
+                <div class="features-list">
+                    <div class="feature-item">
+                        <strong>✨ Safe & Age-Appropriate</strong><br>
+                        <small>Crafted for children</small>
+                    </div>
+                    <div class="feature-item">
+                        <strong>📚 Homework Help</strong><br>
+                        <small>All subjects & grades</small>
+                    </div>
+                    <div class="feature-item">
+                        <strong>📖 Creative Stories</strong><br>
+                        <small>Educational storytelling</small>
+                    </div>
+                    <div class="feature-item">
+                        <strong>🔒 Privacy-Focused</strong><br>
+                        <small>Secure & private</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="chat-container" id="chatContainer">
+        <div class="header chat-header">
+            <button class="back-btn" onclick="backToDashboard()">← Back</button>
+            <h1 id="chatTitle">Chat</h1>
+        </div>
+        
+        <div id="chatMessages" class="chat-messages">
+            <div class="welcome-message">
+                <p id="welcomeText">Welcome! How can I help you today?</p>
+            </div>
+        </div>
+        
+        <div class="input-container">
+            <textarea id="chatInput" class="chat-input" placeholder="Ask me anything..." rows="1"></textarea>
+            <button id="sendBtn" class="send-btn" onclick="sendMessage()">➤</button>
+        </div>
+    </div>
+
+    <script>
+        let currentChatType = 'homework';
+        let isLoading = false;
+        let deferredPrompt;
+
+        // Check server status on load
+        window.onload = function() {
+            checkServerStatus();
+            checkPWAInstall();
+        };
+
+        // PWA Installation
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            document.getElementById('installPrompt').style.display = 'block';
+        });
+
+        function checkPWAInstall() {
+            if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone) {
+                document.getElementById('installPrompt').style.display = 'none';
+            }
+        }
+
+        document.getElementById('installBtn').addEventListener('click', async () => {
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                const { outcome } = await deferredPrompt.userChoice;
+                deferredPrompt = null;
+                hideInstallPrompt();
+            }
+        });
+
+        function hideInstallPrompt() {
+            document.getElementById('installPrompt').style.display = 'none';
+        }
+
+        async function checkServerStatus() {
+            const statusIndicator = document.getElementById('statusIndicator');
+            try {
+                const response = await fetch('http://127.0.0.1:8787/health');
+                const data = await response.json();
+                statusIndicator.className = 'status-indicator status-online';
+                statusIndicator.textContent = '🟢 Online';
+            } catch (error) {
+                statusIndicator.className = 'status-indicator status-offline';
+                statusIndicator.textContent = '🔴 Offline';
+            }
+        }
+
+        function startChat(type) {
+            currentChatType = type;
+            const chatTitle = document.getElementById('chatTitle');
+            const welcomeText = document.getElementById('welcomeText');
+            
+            if (type === 'homework') {
+                chatTitle.textContent = '📚 Homework Helper';
+                welcomeText.textContent = "Hi! I'm here to help you with your homework. What subject are you working on?";
+            } else {
+                chatTitle.textContent = '📖 Story Time';
+                welcomeText.textContent = "Hi! I'd love to tell you a story. What kind of story would you like to hear?";
+            }
+            
+            // Clear previous messages except welcome
+            const chatMessages = document.getElementById('chatMessages');
+            const messages = chatMessages.querySelectorAll('.message');
+            messages.forEach(msg => msg.remove());
+            
+            document.getElementById('dashboard').style.display = 'none';
+            document.getElementById('chatContainer').style.display = 'flex';
+            
+            // Focus input with small delay for mobile keyboards
+            setTimeout(() => {
+                document.getElementById('chatInput').focus();
+            }, 100);
+        }
+
+        function backToDashboard() {
+            document.getElementById('dashboard').style.display = 'flex';
+            document.getElementById('chatContainer').style.display = 'none';
+            // Blur input to close mobile keyboard
+            document.getElementById('chatInput').blur();
+        }
+
+        async function sendMessage() {
+            const input = document.getElementById('chatInput');
+            const message = input.value.trim();
+            
+            if (!message || isLoading) return;
+            
+            isLoading = true;
+            const sendBtn = document.getElementById('sendBtn');
+            sendBtn.disabled = true;
+            sendBtn.style.opacity = '0.5';
+            
+            // Add user message
+            addMessage(message, 'user');
+            input.value = '';
+            input.style.height = 'auto';
+            
+            // Add loading message
+            const loadingDiv = addMessage('Thinking... 🤔', 'loading');
+            
+            try {
+                const response = await fetch('http://127.0.0.1:8787/ai/complete', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        text: message,
+                        type: currentChatType,
+                        childAge: 8
+                    })
+                });
+
+                const data = await response.json();
+                
+                // Remove loading message
+                loadingDiv.remove();
+                
+                if (data.success) {
+                    addMessage(data.data.response, 'ai');
+                } else {
+                    addMessage('Sorry, I had trouble understanding that. Can you try again?', 'ai');
+                }
+            } catch (error) {
+                loadingDiv.remove();
+                addMessage("Sorry, I'm having trouble connecting. Please make sure the server is running!", 'ai');
+            }
+            
+            isLoading = false;
+            sendBtn.disabled = false;
+            sendBtn.style.opacity = '1';
+        }
+
+        function addMessage(text, type) {
+            const chatMessages = document.getElementById('chatMessages');
+            const messageDiv = document.createElement('div');
+            
+            if (type === 'user') {
+                messageDiv.className = 'message user-message';
+            } else if (type === 'loading') {
+                messageDiv.className = 'message loading-message';
+            } else {
+                messageDiv.className = 'message ai-message';
+            }
+            
+            messageDiv.textContent = text;
+            chatMessages.appendChild(messageDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+            return messageDiv;
+        }
+
+        async function testServer() {
+            try {
+                const response = await fetch('http://127.0.0.1:8787/health');
+                const data = await response.json();
+                alert(`✅ Server is running!\n\nService: ${data.service}\nVersion: ${data.version}\nTime: ${new Date(data.time).toLocaleString()}`);
+            } catch (error) {
+                alert(`❌ Server is not responding.\n\nMake sure the server is running on port 8787.`);
+            }
+        }
+
+        function showComingSoon() {
+            alert('Coming Soon! 📸\n\nPhoto homework scanning will be available soon!');
+        }
+
+        // Handle Enter key in textarea
+        document.getElementById('chatInput').addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+        });
+
+        // Auto-resize textarea
+        document.getElementById('chatInput').addEventListener('input', function() {
+            this.style.height = 'auto';
+            this.style.height = Math.min(this.scrollHeight, 100) + 'px';
+        });
+
+        // Prevent iOS bounce effect
+        document.addEventListener('touchmove', function(e) {
+            if (e.target.closest('.chat-messages') || e.target.closest('.main-content')) {
+                return; // Allow scrolling in these areas
+            }
+            e.preventDefault();
+        }, { passive: false });
+    </script>
+</body>
+</html>
